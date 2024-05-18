@@ -6,11 +6,15 @@ import com.example.nonogram.repository.AnsBoard15Repository;
 import com.example.nonogram.repository.UserRecordRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 
 @Service
 public class UserRecordService {
+
+	private static final Logger logger = LoggerFactory.getLogger(UserRecordService.class);
 
 	@Autowired
 	private UserRecordRepository userRecordRepository;
@@ -26,6 +30,7 @@ public class UserRecordService {
 	}
 
 	public void saveUserRecord(UserRecord userRecord) {
+		logger.info("Saving UserRecord: {}", userRecord);
 		userRecordRepository.save(userRecord);
 	}
 
@@ -33,9 +38,10 @@ public class UserRecordService {
 		if (is10x10) {
 			var puzzleAnswer = ansBoard10Repository.findByIdAnsBoard10(puzzleId);
 			if (puzzleAnswer == null) {
+				logger.warn("No puzzle answer found for puzzleId: {}", puzzleId);
 				return false;
 			}
-			return puzzleAnswer.getRow1().equals(solution[0])
+			boolean isCorrect = puzzleAnswer.getRow1().equals(solution[0])
 					&& puzzleAnswer.getRow2().equals(solution[1])
 					&& puzzleAnswer.getRow3().equals(solution[2])
 					&& puzzleAnswer.getRow4().equals(solution[3])
@@ -45,12 +51,15 @@ public class UserRecordService {
 					&& puzzleAnswer.getRow8().equals(solution[7])
 					&& puzzleAnswer.getRow9().equals(solution[8])
 					&& puzzleAnswer.getRow10().equals(solution[9]);
+			logger.info("Puzzle check result for puzzleId: {} is {}", puzzleId, isCorrect);
+			return isCorrect;
 		} else {
 			var puzzleAnswer = ansBoard15Repository.findByIdAnsBoard15(puzzleId);
 			if (puzzleAnswer == null) {
+				logger.warn("No puzzle answer found for puzzleId: {}", puzzleId);
 				return false;
 			}
-			return puzzleAnswer.getRow1().equals(solution[0])
+			boolean isCorrect = puzzleAnswer.getRow1().equals(solution[0])
 					&& puzzleAnswer.getRow2().equals(solution[1])
 					&& puzzleAnswer.getRow3().equals(solution[2])
 					&& puzzleAnswer.getRow4().equals(solution[3])
@@ -65,6 +74,8 @@ public class UserRecordService {
 					&& puzzleAnswer.getRow13().equals(solution[12])
 					&& puzzleAnswer.getRow14().equals(solution[13])
 					&& puzzleAnswer.getRow15().equals(solution[14]);
+			logger.info("Puzzle check result for puzzleId: {} is {}", puzzleId, isCorrect);
+			return isCorrect;
 		}
 	}
 }

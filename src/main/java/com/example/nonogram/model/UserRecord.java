@@ -8,6 +8,13 @@ import javax.persistence.Id;
 @Entity
 public class UserRecord {
 
+	@Id
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	private Long id;
+	private Long userId;
+	private int puzzleId;
+	private long timeTaken;
+
 	public Long getId() {
 		return id;
 	}
@@ -40,12 +47,8 @@ public class UserRecord {
 		this.timeTaken = timeTaken;
 	}
 
-	@Id
-	@GeneratedValue(strategy = GenerationType.IDENTITY)
-	private Long id;
-	private Long userId;
-	private int puzzleId;
-	private long timeTaken;
-
-	// Getters and setters
+	@Override
+	public String toString() {
+		return "UserRecord{id=" + id + ", userId=" + userId + ", puzzleId=" + puzzleId + ", timeTaken=" + timeTaken + "}";
+	}
 }

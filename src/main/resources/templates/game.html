@@ -6,6 +6,35 @@
 	<title>Nonogram Puzzle [[${puzzleId}]]</title>
 	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
 	<link rel="stylesheet" href="/css/style.css">
+	<style>
+        .nonogram-grid {
+            display: grid;
+            grid-template-columns: repeat(10, 30px); /* 10x10 기본 설정, 나중에 JS로 수정 */
+            grid-template-rows: repeat(10, 30px); /* 10x10 기본 설정, 나중에 JS로 수정 */
+            border-collapse: collapse;
+        }
+        .nonogram-cell {
+            width: 30px;
+            height: 30px;
+            border: 1px solid #ddd;
+            text-align: center;
+            cursor: pointer;
+        }
+        .nonogram-cell.active {
+            background-color: #000;
+            color: #fff;
+        }
+        .container {
+            display: flex;
+        }
+        .nonogram-container {
+            flex: 1;
+        }
+        .leaderboard-container {
+            flex: 0 0 300px;
+            margin-left: 20px;
+        }
+	</style>
 </head>
 <body>
 <nav class="navbar navbar-expand-lg navbar-light bg-light fixed-top">
@@ -27,29 +56,50 @@
 		</ul>
 		<ul class="navbar-nav ml-auto">
 			<li class="nav-item">
-				<a class="nav-link btn btn-outline-primary" href="/login">Login</a>
+				<a class="nav-link btn btn-outline-primary" href="/login">Login with Google</a>
 			</li>
 		</ul>
 	</div>
 </nav>
 
 <div class="container" style="padding-top: 56px;">
-	<h2>Puzzle [[${puzzleId}]]</h2>
-	<div id="nonogram"></div>
-	<div>
-		<button id="submitBtn">제출</button>
+	<div class="nonogram-container">
+		<h2>Puzzle [[${puzzleId}]]</h2>
+		<div id="nonogram" class="nonogram-grid"></div>
+		<div>
+			<button id="submitBtn" class="btn btn-primary">제출</button>
+		</div>
+		<div>
+			<h3>스톱워치</h3>
+			<p id="stopwatch">00:00:00</p>
+		</div>
 	</div>
-	<div>
-		<h3>스톱워치</h3>
-		<p id="stopwatch">00:00:00</p>
-	</div>
-	<div>
+	<div class="leaderboard-container">
 		<h3>순위표</h3>
-		<ul>
+		<ul id="leaderboard">
 			<li th:each="record : ${topRecords}">
 				<span th:text="${record.username}">Username</span> - <span th:text="${record.timeTaken}">Time</span> ms
 			</li>
 		</ul>
+	</div>
+</div>
+
+<!-- 모달 -->
+<div class="modal fade" id="resultModal" tabindex="-1" role="dialog" aria-labelledby="resultModalLabel" aria-hidden="true">
+	<div class="modal-dialog" role="document">
+		<div class="modal-content">
+			<div class="modal-header">
+				<h5 class="modal-title" id="resultModalLabel">결과</h5>
+				<button type="button" class="close" data-dismiss="modal" aria-label="Close">
+					<span aria-hidden="true">&times;</span>
+				</button>
+			</div>
+			<div class="modal-body" id="resultMessage">
+			</div>
+			<div class="modal-footer">
+				<button type="button" class="btn btn-secondary" data-dismiss="modal">닫기</button>
+			</div>
+		</div>
 	</div>
 </div>
 
@@ -59,73 +109,88 @@
 <script>
     document.addEventListener("DOMContentLoaded", function() {
         const puzzleId = [[${puzzleId}]]; // Thymeleaf 변수를 사용
-        const nonogramContainer = document.getElementById("nonogram");
+        const is10x10 = puzzleId <= 10; // 10x10인지 15x15인지 확인
+        const gridSize = is10x10 ? 10 : 15;
 
-        // 예시 퍼즐 데이터 (10x10)
-        const puzzleData = [
-            [0,0,0,0,0,0,0,0,0,0,],
-            [0,0,0,0,0,0,0,0,0,0,],
-            [0,0,0,0,0,0,0,0,0,0,],
-            [0,0,0,0,0,0,0,0,0,0,],
-            [0,0,0,0,0,0,0,0,0,0,],
-            [0,0,0,0,0,0,0,0,0,0,],
-            [0,0,0,0,0,0,0,0,0,0,],
-            [0,0,0,0,0,0,0,0,0,0,],
-            [0,0,0,0,0,0,0,0,0,0,],
-            [0,0,0,0,0,0,0,0,0,0,]
-        ];
+        const nonogramElement = document.getElementById('nonogram');
+        nonogramElement.style.gridTemplateColumns = `repeat(${gridSize}, 30px)`;
+        nonogramElement.style.gridTemplateRows = `repeat(${gridSize}, 30px)`;
 
-        const grid = document.createElement("div");
-        grid.style.display = "grid";
-        grid.style.gridTemplateColumns = "repeat(10, 30px)";
-        grid.style.gridTemplateRows = "repeat(10, 30px)";
-        grid.style.gap = "1px";
-
-        puzzleData.forEach(row => {
-            row.forEach(cell => {
-                const cellElement = document.createElement("div");
-                cellElement.style.width = "30px";
-                cellElement.style.height = "30px";
-                cellElement.style.border = "1px solid black";
-                cellElement.style.backgroundColor = cell ? "black" : "white";
-                cellElement.addEventListener("click", () => {
-                    cellElement.style.backgroundColor = cellElement.style.backgroundColor === "black" ? "white" : "black";
+        for (let i = 0; i < gridSize; i++) {
+            for (let j = 0; j < gridSize; j++) {
+                const cell = document.createElement('div');
+                cell.className = 'nonogram-cell';
+                cell.id = `cell-${i}-${j}`;
+                cell.addEventListener('click', () => {
+                    cell.classList.toggle('active');
                 });
-                grid.appendChild(cellElement);
-            });
-        });
-
-        nonogramContainer.appendChild(grid);
-
-        // 스톱워치
-        let stopwatchInterval;
-        let stopwatchTime = 0;
-        const stopwatchElement = document.getElementById("stopwatch");
-
-        function startStopwatch() {
-            stopwatchInterval = setInterval(() => {
-                stopwatchTime += 1000;
-                const hours = String(Math.floor(stopwatchTime / 3600000)).padStart(2, '0');
-                const minutes = String(Math.floor((stopwatchTime % 3600000) / 60000)).padStart(2, '0');
-                const seconds = String(Math.floor((stopwatchTime % 60000) / 1000)).padStart(2, '0');
-                stopwatchElement.textContent = `${hours}:${minutes}:${seconds}`;
-            }, 1000);
+                nonogramElement.appendChild(cell);
+            }
         }
 
-        startStopwatch();
+        let stopwatchInterval;
+        const stopwatchElement = document.getElementById('stopwatch');
+        let startTime = Date.now();
 
-        document.getElementById("submitBtn").addEventListener("click", function() {
-            const username = prompt("Enter your username:");
-            const solution = "사용자가 입력한 정답"; // 사용자가 입력한 정답을 가져오는 로직 필요
-            fetch("/submit", {
-                method: "POST",
+        function updateStopwatch() {
+            const elapsedTime = Date.now() - startTime;
+            const hours = String(Math.floor(elapsedTime / 3600000)).padStart(2, '0');
+            const minutes = String(Math.floor((elapsedTime % 3600000) / 60000)).padStart(2, '0');
+            const seconds = String(Math.floor((elapsedTime % 60000) / 1000)).padStart(2, '0');
+            stopwatchElement.textContent = `${hours}:${minutes}:${seconds}`;
+        }
+
+        stopwatchInterval = setInterval(updateStopwatch, 1000);
+
+        // 제출 버튼 클릭 이벤트 리스너
+        document.getElementById('submitBtn').addEventListener('click', function() {
+            clearInterval(stopwatchInterval);
+            const elapsedTime = Date.now() - startTime;
+
+            const solution = [];
+            for (let i = 0; i < gridSize; i++) {
+                const row = [];
+                for (let j = 0; j < gridSize; j++) {
+                    row.push(document.getElementById(`cell-${i}-${j}`).classList.contains('active') ? 1 : 0);
+                }
+                solution.push(row.join(','));
+            }
+
+            const username = prompt("이름을 입력하세요:");
+            const timeTaken = elapsedTime;
+
+            fetch('/submit', {
+                method: 'POST',
                 headers: {
-                    "Content-Type": "application/x-www-form-urlencoded"
+                    'Content-Type': 'application/x-www-form-urlencoded'
                 },
-                body: `puzzleId=${puzzleId}&username=${username}&timeTaken=${stopwatchTime}&solution=${solution}`
+                body: new URLSearchParams({
+                    puzzleId: puzzleId,
+                    username: username,
+                    timeTaken: timeTaken,
+                    solution: solution,
+                    is10x10: is10x10
+                })
             })
                 .then(response => response.text())
-                .then(data => alert(data));
+                .then(data => {
+                    console.log(data); // 디버그용 로그
+                    document.getElementById('resultMessage').innerText = data;
+                    $('#resultModal').modal('show');
+                    if (data.includes("축하합니다")) {
+                        fetch(`/game/${puzzleId}`)
+                            .then(response => response.text())
+                            .then(html => {
+                                const parser = new DOMParser();
+                                const doc = parser.parseFromString(html, 'text/html');
+                                const leaderboard = doc.getElementById('leaderboard').innerHTML;
+                                document.getElementById('leaderboard').innerHTML = leaderboard;
+                            });
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                });
         });
     });
 </script>

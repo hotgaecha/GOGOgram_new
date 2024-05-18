@@ -28,5 +28,9 @@ public class User {
 	public void setUsername(String username) {
 		this.username = username;
 	}
-// Getters and setters
+
+	@Override
+	public String toString() {
+		return "User{id=" + id + ", username='" + username + "'}";
+	}
 }
