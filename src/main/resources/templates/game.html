@@ -27,7 +27,7 @@
 		</ul>
 		<ul class="navbar-nav ml-auto">
 			<li class="nav-item">
-				<a class="nav-link btn btn-outline-primary" href="/login">Login with Google</a>
+				<a class="nav-link btn btn-outline-primary" href="/login">Login</a>
 			</li>
 		</ul>
 	</div>
@@ -36,6 +36,21 @@
 <div class="container" style="padding-top: 56px;">
 	<h2>Puzzle [[${puzzleId}]]</h2>
 	<div id="nonogram"></div>
+	<div>
+		<button id="submitBtn">제출</button>
+	</div>
+	<div>
+		<h3>스톱워치</h3>
+		<p id="stopwatch">00:00:00</p>
+	</div>
+	<div>
+		<h3>순위표</h3>
+		<ul>
+			<li th:each="record : ${topRecords}">
+				<span th:text="${record.username}">Username</span> - <span th:text="${record.timeTaken}">Time</span> ms
+			</li>
+		</ul>
+	</div>
 </div>
 
 <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js"></script>
@@ -58,7 +73,6 @@
             [0,0,0,0,0,0,0,0,0,0,],
             [0,0,0,0,0,0,0,0,0,0,],
             [0,0,0,0,0,0,0,0,0,0,]
-            // 나머지 행 생략
         ];
 
         const grid = document.createElement("div");
@@ -67,18 +81,52 @@
         grid.style.gridTemplateRows = "repeat(10, 30px)";
         grid.style.gap = "1px";
 
-        for (let row of puzzleData) {
-            for (let cell of row) {
+        puzzleData.forEach(row => {
+            row.forEach(cell => {
                 const cellElement = document.createElement("div");
                 cellElement.style.width = "30px";
                 cellElement.style.height = "30px";
                 cellElement.style.border = "1px solid black";
-                cellElement.style.backgroundColor = cell === 1 ? "black" : "white";
+                cellElement.style.backgroundColor = cell ? "black" : "white";
+                cellElement.addEventListener("click", () => {
+                    cellElement.style.backgroundColor = cellElement.style.backgroundColor === "black" ? "white" : "black";
+                });
                 grid.appendChild(cellElement);
-            }
-        }
+            });
+        });
 
         nonogramContainer.appendChild(grid);
+
+        // 스톱워치
+        let stopwatchInterval;
+        let stopwatchTime = 0;
+        const stopwatchElement = document.getElementById("stopwatch");
+
+        function startStopwatch() {
+            stopwatchInterval = setInterval(() => {
+                stopwatchTime += 1000;
+                const hours = String(Math.floor(stopwatchTime / 3600000)).padStart(2, '0');
+                const minutes = String(Math.floor((stopwatchTime % 3600000) / 60000)).padStart(2, '0');
+                const seconds = String(Math.floor((stopwatchTime % 60000) / 1000)).padStart(2, '0');
+                stopwatchElement.textContent = `${hours}:${minutes}:${seconds}`;
+            }, 1000);
+        }
+
+        startStopwatch();
+
+        document.getElementById("submitBtn").addEventListener("click", function() {
+            const username = prompt("Enter your username:");
+            const solution = "사용자가 입력한 정답"; // 사용자가 입력한 정답을 가져오는 로직 필요
+            fetch("/submit", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/x-www-form-urlencoded"
+                },
+                body: `puzzleId=${puzzleId}&username=${username}&timeTaken=${stopwatchTime}&solution=${solution}`
+            })
+                .then(response => response.text())
+                .then(data => alert(data));
+        });
     });
 </script>
 </body>

@@ -15,7 +15,7 @@ public class SecurityConfig {
 		http
 				.authorizeRequests(authorizeRequests ->
 						authorizeRequests
-								.requestMatchers("/", "/game/**", "/css/**").permitAll() // 공개 접근 허용 경로
+								.mvcMatchers("/", "/game/**", "/css/**").permitAll() // 공개 접근 허용 경로
 								.anyRequest().authenticated()
 				)
 				.formLogin(form -> form.disable()) // 폼 로그인 비활성화
