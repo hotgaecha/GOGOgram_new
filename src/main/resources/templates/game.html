@@ -174,7 +174,6 @@
             })
                 .then(response => response.text())
                 .then(data => {
-                    console.log(data); // 디버그용 로그
                     document.getElementById('resultMessage').innerText = data;
                     $('#resultModal').modal('show');
                     if (data.includes("축하합니다")) {

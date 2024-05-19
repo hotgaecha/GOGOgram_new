@@ -43,30 +43,35 @@ public class GameController {
 	@Transactional
 	public String submit(@RequestParam("puzzleId") int puzzleId, @RequestParam("username") String username, @RequestParam("timeTaken") long timeTaken, @RequestParam("solution") String[] solution, @RequestParam("is10x10") boolean is10x10) {
 		logger.info("Received submission for puzzleId: {}, username: {}, timeTaken: {}", puzzleId, username, timeTaken);
-		logger.info("Solution: {}", (Object)solution);  // 디버그를 위해 추가
+		logger.info("Solution: {}", (Object)solution);
 
-		if (userRecordService.checkSolution(puzzleId, solution, is10x10)) {
-			User user = userRepository.findByUsername(username);
-			if (user == null) {
-				user = new User();
-				user.setUsername(username);
-				userRepository.saveAndFlush(user);
-				logger.info("New user created: {}", user);
+		try {
+			if (userRecordService.checkSolution(puzzleId, solution, is10x10)) {
+				User user = userRepository.findByUsername(username);
+				if (user == null) {
+					user = new User();
+					user.setUsername(username);
+					userRepository.saveAndFlush(user);
+					logger.info("New user created: {}", user);
+				} else {
+					logger.info("Existing user found: {}", user);
+				}
+
+				UserRecord userRecord = new UserRecord();
+				userRecord.setUserId(user.getId());
+				userRecord.setPuzzleId(puzzleId);
+				userRecord.setTimeTaken(timeTaken);
+				userRecordService.saveUserRecord(userRecord);
+				logger.info("New user record created: {}", userRecord);
+
+				return "축하합니다! 정답입니다. 기록이 저장되었습니다.";
 			} else {
-				logger.info("Existing user found: {}", user);
+				logger.warn("Incorrect solution for puzzleId: {}, username: {}", puzzleId, username);
+				return "오답입니다.";
 			}
-
-			UserRecord userRecord = new UserRecord();
-			userRecord.setUserId(user.getId());
-			userRecord.setPuzzleId(puzzleId);
-			userRecord.setTimeTaken(timeTaken);
-			userRecordRepository.saveAndFlush(userRecord);
-			logger.info("New user record created: {}", userRecord);
-
-			return "축하합니다! 정답입니다. 기록이 저장되었습니다.";
-		} else {
-			logger.warn("Incorrect solution for puzzleId: {}, username: {}", puzzleId, username);
-			return "오답입니다.";
+		} catch (Exception e) {
+			logger.error("Error processing submission", e);
+			return "서버 오류가 발생했습니다. 다시 시도해 주세요.";
 		}
 	}
 }

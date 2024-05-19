@@ -2,13 +2,14 @@ package com.example.nonogram.model;
 
 import javax.persistence.Entity;
 import javax.persistence.Id;
+import javax.persistence.Table;
 
 @Entity
+@Table(name = "Ans_board_15")
 public class AnsBoard15 {
 
 	@Id
 	private int id;
-	private int idAnsBoard15;
 	private String row1;
 	private String row2;
 	private String row3;
@@ -32,14 +33,6 @@ public class AnsBoard15 {
 
 	public void setId(int id) {
 		this.id = id;
-	}
-
-	public int getIdAnsBoard15() {
-		return idAnsBoard15;
-	}
-
-	public void setIdAnsBoard15(int idAnsBoard15) {
-		this.idAnsBoard15 = idAnsBoard15;
 	}
 
 	public String getRow1() {
